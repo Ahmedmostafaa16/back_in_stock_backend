@@ -26,3 +26,7 @@ app.add_middleware(
 app.include_router(dashboard_router)
 app.include_router(notify_router)
 app.include_router(webhooks_router)
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the API"}
