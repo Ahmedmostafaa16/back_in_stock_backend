@@ -67,6 +67,11 @@ async def inventory_update(
     inventory_item_id = data.get("inventory_item_id")
     location_id = data.get("location_id")
     available = data.get("available")
+    print("WEBHOOK RECEIVED")
+    print("Shop:", request.headers.get("X-Shopify-Shop-Domain"))
+    print("Inventory Item ID:", data.get("inventory_item_id"))
+    print("Location ID:", data.get("location_id"))
+    print("Available:", data.get("available"))
     logger.info(
         "Inventory webhook payload parsed",
         extra={
