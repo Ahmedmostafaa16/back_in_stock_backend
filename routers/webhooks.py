@@ -21,13 +21,16 @@ logger = logging.getLogger(__name__)
 
 def verify_webhook(raw_body: bytes, shopify_hmac: str):
     shopify_secret = require_setting(settings.SHOPIFY_API_SECRET, "SHOPIFY_API_SECRET")
+
     computed_hmac = base64.b64encode(
         hmac.new(
             shopify_secret.encode("utf-8"),
             raw_body,
             hashlib.sha256,
         ).digest()
-    ).decode()
+    ).decode().strip()
+
+    shopify_hmac = shopify_hmac.strip()
 
     return hmac.compare_digest(computed_hmac, shopify_hmac)
 
