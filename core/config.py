@@ -8,10 +8,14 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     # Shopify
+    SHOPIFY_API_KEY: str | None = None
     SHOPIFY_API_SECRET: str | None = None
     SHOPIFY_ACCESS_TOKEN: str | None = None
     SHOP_DOMAIN: str | None = None
     SHOPIFY_ONLINE_LOCATION_ID: str | None = None
+    SHOPIFY_APP_URL: str | None = None
+    SHOPIFY_OAUTH_SUCCESS_URL: str | None = None
+    SHOPIFY_SCOPES: str = "read_products,read_inventory"
 
     # Database
     DATABASE_URL: str | None = None

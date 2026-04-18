@@ -1,14 +1,16 @@
 import requests
-from core.config import require_setting, settings
+from sqlalchemy.orm import Session
+
+from services.shopify_auth import get_shop_token, normalize_shop_domain
 
 
 SHOPIFY_API_VERSION = "2026-04"
 REQUEST_TIMEOUT_SECONDS = 10
 
 
-def get_inventory_item_id(variant_id: str) -> str:
-    shop_domain = require_setting(settings.SHOP_DOMAIN, "SHOP_DOMAIN")
-    access_token = require_setting(settings.SHOPIFY_ACCESS_TOKEN, "SHOPIFY_ACCESS_TOKEN")
+def get_inventory_item_id(variant_id: str, shop_domain: str, db: Session) -> str:
+    shop_domain = normalize_shop_domain(shop_domain)
+    access_token = get_shop_token(shop_domain, db)
     url = f"https://{shop_domain}/admin/api/{SHOPIFY_API_VERSION}/variants/{variant_id}.json"
 
     headers = {

@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, engine
-from models import Data
+from models import Data, Shop
+from routers.auth import router as auth_router
 from routers.dashboard import router as dashboard_router
 from routers.notify import router as notify_router
 from routers.webhooks import router as webhooks_router
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(dashboard_router)
+app.include_router(auth_router)
 app.include_router(notify_router)
 app.include_router(webhooks_router)
 
