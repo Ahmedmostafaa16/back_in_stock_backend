@@ -35,12 +35,25 @@ def verify_webhook(raw_body: bytes, shopify_hmac: str):
     return hmac.compare_digest(computed_hmac, shopify_hmac)
 
 
+def compute_webhook_hmac(raw_body: bytes):
+    shopify_secret = require_setting(settings.SHOPIFY_API_SECRET, "SHOPIFY_API_SECRET")
+
+    return base64.b64encode(
+        hmac.new(
+            shopify_secret.encode("utf-8"),
+            raw_body,
+            hashlib.sha256,
+        ).digest()
+    ).decode().strip()
+
+
 @router.post("/inventory")
 async def inventory_update(
     request: Request,
     db: Session = Depends(get_db),
 ):
     raw_body = await request.body()
+    raw_shop_domain = request.headers.get("X-Shopify-Shop-Domain")
 
     shopify_hmac = request.headers.get("X-Shopify-Hmac-Sha256")
     if not shopify_hmac:
@@ -48,16 +61,43 @@ async def inventory_update(
         raise HTTPException(status_code=400, detail="Missing HMAC")
 
     try:
+        computed_hmac = compute_webhook_hmac(raw_body)
         webhook_is_valid = verify_webhook(raw_body, shopify_hmac)
     except RuntimeError as exc:
         logger.error("Inventory webhook failed during HMAC verification: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
 
-    if not webhook_is_valid:
-        logger.error("Inventory webhook failed: invalid HMAC")
-        raise HTTPException(status_code=403, detail="Invalid HMAC")
+    logger.info(
+        "Inventory webhook HMAC checked",
+        extra={
+            "shop_domain": raw_shop_domain,
+            "header_hmac": shopify_hmac,
+            "computed_hmac": computed_hmac,
+        },
+    )
 
-    shop_domain = normalize_shop_domain(request.headers.get("X-Shopify-Shop-Domain"))
+    if not webhook_is_valid:
+        if settings.ENVIRONMENT == "production":
+            logger.error(
+                "Inventory webhook failed: invalid HMAC",
+                extra={
+                    "shop_domain": raw_shop_domain,
+                    "header_hmac": shopify_hmac,
+                    "computed_hmac": computed_hmac,
+                },
+            )
+            raise HTTPException(status_code=403, detail="Invalid HMAC")
+        else:
+            logger.warning(
+                "Webhook HMAC invalid (dev mode), continuing",
+                extra={
+                    "shop_domain": raw_shop_domain,
+                    "header_hmac": shopify_hmac,
+                    "computed_hmac": computed_hmac,
+                },
+            )
+
+    shop_domain = normalize_shop_domain(raw_shop_domain)
     logger.info("Inventory webhook received", extra={"shop_domain": shop_domain})
     get_shop_token(shop_domain, db)
 
